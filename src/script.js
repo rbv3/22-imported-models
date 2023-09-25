@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import * as dat from 'lil-gui'
 
@@ -10,6 +11,26 @@ THREE.ColorManagement.enabled = false
  */
 // Debug
 const gui = new dat.GUI()
+let animations = []
+const controlAnimations = {
+    0: true,
+    1: false,
+    2: false
+}
+const chooseAnimation = (index) => {
+    for(const key in controlAnimations) {
+        controlAnimations[key] = false
+    }
+    controlAnimations[index] = true
+
+    action.stop()
+    action = mixer.clipAction(animations[index])
+    action.play()
+}
+const foxFolder = gui.addFolder('Fox')
+foxFolder.add(controlAnimations, '0').name('look around').onChange(() => chooseAnimation(0)).listen()
+foxFolder.add(controlAnimations, '1').name('walk').onChange(() => chooseAnimation(1)).listen()
+foxFolder.add(controlAnimations, '2').name('run').onChange(() => chooseAnimation(2)).listen()
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
@@ -20,7 +41,12 @@ const scene = new THREE.Scene()
 /*
     Models
 */
+const dracoLoader = new DRACOLoader()
+dracoLoader.setDecoderPath('/draco/')
+
 const gltfLoader = new GLTFLoader()
+gltfLoader.setDRACOLoader(dracoLoader)
+
 gltfLoader.load(
     '/models/FlightHelmet/glTF/FlightHelmet.gltf',
     (gltf) => {
@@ -30,12 +56,27 @@ gltfLoader.load(
     }
 )
 gltfLoader.load(
-    '/models/Duck/glTF/Duck.gltf',
+    '/models/Duck/glTF-Draco/Duck.gltf',
     (gltf) => {
         const duck = gltf.scene.children[0]
         duck.scale.divideScalar(3)
         duck.position.set(1, 0, 1)
         scene.add(duck)
+    }
+)
+let mixer = null
+let action = null
+gltfLoader.load(
+    '/models/Fox/glTF/Fox.gltf',
+    (gltf) => {
+        mixer = new THREE.AnimationMixer(gltf.scene)
+        action = mixer.clipAction(gltf.animations[0])
+        animations = [...gltf.animations]
+        action.play()
+
+        gltf.scene.scale.set(0.020, 0.020, 0.020)
+        gltf.scene.position.set(2, 0, 2)
+        scene.add(gltf.scene)
     }
 )
 
@@ -99,7 +140,7 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(2, 2, 2)
+camera.position.set(-1, 1, 5)
 scene.add(camera)
 
 // Controls
@@ -130,7 +171,10 @@ const tick = () =>
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - previousTime
     previousTime = elapsedTime
-
+    // Update mixer
+    if(mixer){
+        mixer.update(deltaTime)
+    }
     // Update controls
     controls.update()
 
