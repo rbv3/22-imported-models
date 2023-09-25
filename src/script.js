@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import * as dat from 'lil-gui'
 
 THREE.ColorManagement.enabled = false
@@ -15,6 +16,28 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
+
+/*
+    Models
+*/
+const gltfLoader = new GLTFLoader()
+gltfLoader.load(
+    '/models/FlightHelmet/glTF/FlightHelmet.gltf',
+    (gltf) => {
+        while(gltf.scene.children.length) {
+            scene.add(gltf.scene.children[0])
+        }
+    }
+)
+gltfLoader.load(
+    '/models/Duck/glTF/Duck.gltf',
+    (gltf) => {
+        const duck = gltf.scene.children[0]
+        duck.scale.divideScalar(3)
+        duck.position.set(1, 0, 1)
+        scene.add(duck)
+    }
+)
 
 /**
  * Floor
